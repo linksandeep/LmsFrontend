@@ -89,5 +89,16 @@ export const adminService = {
   async getRecentActivity(limit = 10) {
     const response = await api.get(`/admin/activity?limit=${limit}`);
     return response.data;
-  }
+  },
+
+  // Get all courses (admin only)
+async getAllCourses(page = 1, limit = 50, status?: string) {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
+  if (status) params.append('status', status);
+  
+  const response = await api.get(`/admin/courses?${params.toString()}`);
+  return response.data;
+}
 };

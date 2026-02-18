@@ -2,7 +2,6 @@ import api from './api';
 import { Course, CreateCourseData, CourseFilters } from '../types/course';
 
 export const courseService = {
-  // Get all courses (public)
   async getCourses(filters?: CourseFilters) {
     const params = new URLSearchParams();
     if (filters) {
@@ -17,13 +16,21 @@ export const courseService = {
     return response.data;
   },
 
-  // Get single course (public)
   async getCourse(id: string) {
-    const response = await api.get(`/courses/${id}`);
-    return response.data;
+    console.log('🔍 courseService.getCourse called with ID:', id);
+    const token = localStorage.getItem('token');
+    console.log('Token exists:', !!token);
+    
+    try {
+      const response = await api.get(`/courses/${id}`);
+      console.log('✅ Course API response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Course API error:', error.response?.data || error.message);
+      throw error;
+    }
   },
 
-  // Create course (teacher only)
   async createCourse(data: CreateCourseData) {
     console.log('Creating course with data:', data);
     const response = await api.post('/courses', data);
@@ -31,33 +38,28 @@ export const courseService = {
     return response.data;
   },
 
-  // Update course (teacher only)
   async updateCourse(id: string, data: Partial<CreateCourseData>) {
     const response = await api.patch(`/courses/${id}`, data);
     return response.data;
   },
 
-  // Delete course (teacher only)
   async deleteCourse(id: string) {
     const response = await api.delete(`/courses/${id}`);
     return response.data;
   },
 
-  // Publish course (teacher only)
   async publishCourse(id: string) {
     const response = await api.patch(`/courses/${id}/publish`);
     return response.data;
   },
 
-  // Unpublish course (teacher only)
   async unpublishCourse(id: string) {
     const response = await api.patch(`/courses/${id}/unpublish`);
     return response.data;
   },
 
-  // Get teacher's courses
   async getMyCourses() {
-    const response = await api.get('/users/courses');
+    const response = await api.get('/courses/teacher/mine');
     return response.data;
   }
 };
