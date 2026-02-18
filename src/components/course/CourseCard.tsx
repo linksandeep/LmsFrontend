@@ -13,9 +13,9 @@ interface CourseCardProps {
     thumbnail?: string;
     level: 'beginner' | 'intermediate' | 'advanced';
     price: number;
-    teacher: {
-      name: string;
-    };
+    teacher?: {
+      name?: string;
+    } | null;
     enrolledStudents?: number;
     averageRating?: number;
     totalReviews?: number;
@@ -29,6 +29,12 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onEnroll }) => {
   const handleClick = () => {
     navigate(`/courses/${course.id}`);
   };
+
+  // Safely get teacher name with fallback
+  const teacherName = course.teacher?.name || 'Unknown Instructor';
+  
+  // Safely get enrolled students count
+  const enrolledCount = course.enrolledStudents || 0;
 
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
@@ -72,9 +78,9 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onEnroll }) => {
         
         {/* Instructor & Students */}
         <div className="flex items-center text-sm text-gray-500 mb-3">
-          <span className="truncate">By {course.teacher.name}</span>
+          <span className="truncate">By {teacherName}</span>
           <span className="mx-2">•</span>
-          <span>{course.enrolledStudents || 0} students</span>
+          <span>{enrolledCount} students</span>
         </div>
         
         {/* Rating */}

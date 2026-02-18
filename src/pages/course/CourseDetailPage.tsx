@@ -9,13 +9,13 @@ import { Lesson, LessonFormData } from '../../types/lesson';
 import { Review, ReviewStats } from '../../types/review';
 import LessonList from '../../components/lesson/LessonList';
 import LessonPlayer from '../../components/lesson/LessonPlayer';
-import LessonForm from '../../components/lesson/LessonForm';
 import ReviewCard from '../../components/course/ReviewCard';
 import ReviewForm from '../../components/course/ReviewForm';
 import Rating from '../../components/common/Rating';
 import LevelBadge from '../../components/common/LevelBadge';
 import PriceTag from '../../components/common/PriceTag';
 import WishlistButton from '../../components/common/WishlistButton';
+import LessonForm from '../../components/lesson/LessonForm';
 
 const CourseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +35,7 @@ const CourseDetailPage: React.FC = () => {
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isOwner, setIsOwner] = useState(false);
   
   // Enrollment state
   const [enrolling, setEnrolling] = useState(false);
@@ -58,10 +59,22 @@ const CourseDetailPage: React.FC = () => {
   
   // UI state
   const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'reviews'>('overview');
+  const [authChecked, setAuthChecked] = useState(false);
 
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
-  const isTeacher = user?.role === 'teacher' && course?.teacher?.id === user?.id;
+  const token = localStorage.getItem('token');
+
+  // Check authentication on mount
+  useEffect(() => {
+    console.log('=== AUTH CHECK ===');
+    console.log('Token exists:', !!token);
+    console.log('User:', user);
+    console.log('Course ID:', id);
+    setAuthChecked(true);
+  }, [token, user, id]);
+
+  const isTeacher = user?.role === 'teacher' && isOwner;
   const isAdmin = user?.role === 'admin';
   const canReview = isEnrolled && !reviews.some(r => r.userId === user?.id);
 
@@ -76,51 +89,115 @@ const CourseDetailPage: React.FC = () => {
     const loadData = async () => {
       try {
         setLoading(true);
+        setError('');
+        
+        console.log('=== LOADING COURSE DATA ===');
+        console.log('Course ID from URL:', id);
+        console.log('Token exists:', !!token);
+        console.log('User:', user);
         
         // Load course data
         if (!hasLoaded.current.course) {
-          const courseResponse = await courseService.getCourse(id);
-          setCourse(courseResponse.data?.course || courseResponse.data);
-          hasLoaded.current.course = true;
+          console.log('Fetching course data...');
+          try {
+            const courseResponse = await courseService.getCourse(id);
+            console.log('Course API response:', courseResponse);
+            
+            const courseData = courseResponse.data?.course || courseResponse.data;
+            console.log('Processed course data:', courseData);
+            
+            if (!courseData) {
+              throw new Error('No course data received');
+            }
+            
+            setCourse(courseData);
+            
+            // Check if current user is the owner
+            if (user) {
+              const courseTeacherId = courseData.teacher?.id || courseData.teacher;
+              const isOwnerCheck = courseTeacherId === user.id;
+              setIsOwner(isOwnerCheck);
+              console.log('Owner check:', {
+                courseTeacherId,
+                userId: user.id,
+                isOwner: isOwnerCheck
+              });
+            }
+            
+            hasLoaded.current.course = true;
+            console.log('Course data loaded successfully');
+          } catch (courseError: any) {
+            console.error('Error fetching course:', courseError);
+            console.error('Error response:', courseError.response?.data);
+            throw courseError;
+          }
         }
 
         // Load lessons
         if (!hasLoaded.current.lessons) {
-          const lessonsResponse = await lessonService.getCourseLessons(id);
-          setLessons(lessonsResponse.data.lessons || []);
-          hasLoaded.current.lessons = true;
+          console.log('Fetching lessons...');
+          try {
+            const lessonsResponse = await lessonService.getCourseLessons(id);
+            console.log('Lessons response:', lessonsResponse);
+            setLessons(lessonsResponse.data?.lessons || []);
+            hasLoaded.current.lessons = true;
+          } catch (lessonsError) {
+            console.error('Error fetching lessons:', lessonsError);
+            // Don't throw - lessons might not exist
+          }
         }
 
         // Load reviews
         if (!hasLoaded.current.reviews) {
-          const reviewsResponse = await reviewService.getCourseReviews(id, 1);
-          setReviews(reviewsResponse.data.reviews || []);
-          setReviewStats({
-            averageRating: reviewsResponse.data.statistics?.averageRating || 0,
-            totalReviews: reviewsResponse.data.statistics?.totalReviews || 0,
-            ratingDistribution: reviewsResponse.data.statistics?.ratingDistribution || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
-          });
-          hasLoaded.current.reviews = true;
-        }
-
-        // Set first lesson as current if available
-        if (lessons.length > 0 && !currentLesson) {
-          setCurrentLesson(lessons[0]);
+          console.log('Fetching reviews...');
+          try {
+            const reviewsResponse = await reviewService.getCourseReviews(id, 1);
+            console.log('Reviews response:', reviewsResponse);
+            setReviews(reviewsResponse.data?.reviews || []);
+            setReviewStats({
+              averageRating: reviewsResponse.data?.statistics?.averageRating || 0,
+              totalReviews: reviewsResponse.data?.statistics?.totalReviews || 0,
+              ratingDistribution: reviewsResponse.data?.statistics?.ratingDistribution || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+            });
+            hasLoaded.current.reviews = true;
+          } catch (reviewsError) {
+            console.error('Error fetching reviews:', reviewsError);
+            // Don't throw - reviews might not exist
+          }
         }
 
       } catch (err: any) {
-        if (err.response?.status === 429) {
+        console.error('❌ Failed to load course:', err);
+        console.error('Error details:', {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status
+        });
+        
+        if (err.response?.status === 404) {
+          setError('Course not found');
+        } else if (err.response?.status === 401) {
+          setError('Please log in to view this course');
+        } else if (err.response?.status === 429) {
           setError('Too many requests. Please wait a moment and try again.');
         } else {
           setError(err.response?.data?.message || 'Failed to load course');
         }
       } finally {
+        console.log('Setting loading to false');
         setLoading(false);
       }
     };
 
     loadData();
-  }, [id]); // Only depend on id
+  }, [id, token, user]);
+
+  // Set first lesson as current when lessons are loaded
+  useEffect(() => {
+    if (lessons.length > 0 && !currentLesson) {
+      setCurrentLesson(lessons[0]);
+    }
+  }, [lessons]);
 
   // Check enrollment separately
   useEffect(() => {
@@ -145,7 +222,7 @@ const CourseDetailPage: React.FC = () => {
     };
 
     checkEnrollment();
-  }, [id, user]); // Only depend on id and user
+  }, [id, user]);
 
   const handleEnroll = async () => {
     if (!user) {
@@ -167,6 +244,102 @@ const CourseDetailPage: React.FC = () => {
     } finally {
       setEnrolling(false);
     }
+  };
+
+  const handleCreateLesson = async (data: LessonFormData) => {
+    try {
+      setFormLoading(true);
+      
+      const lessonData = {
+        title: data.title,
+        description: data.description,
+        duration: data.duration,
+        videoUrl: data.videoUrl,
+        videoProvider: data.videoProvider,
+        isPreview: data.isPreview,
+        order: lessons.length + 1,
+        resources: data.resources
+          .filter(r => r.title && r.url)
+          .map(r => ({
+            title: r.title,
+            fileUrl: r.url,
+            fileType: 'application/octet-stream'
+          }))
+      };
+  
+      const response = await lessonService.createLesson(id!, lessonData);
+      setLessons([...lessons, response.data.lesson]);
+      setShowLessonForm(false);
+      alert('✅ Lesson created successfully!');
+    } catch (err: any) {
+      console.error('Failed to create lesson:', err);
+      alert(err.response?.data?.message || 'Failed to create lesson');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+  
+  const handleUpdateLesson = async (data: LessonFormData) => {
+    if (!editingLesson) return;
+    try {
+      setFormLoading(true);
+      
+      const lessonData = {
+        title: data.title,
+        description: data.description,
+        duration: data.duration,
+        videoUrl: data.videoUrl,
+        videoProvider: data.videoProvider,
+        isPreview: data.isPreview,
+        resources: data.resources
+          .filter(r => r.title && r.url)
+          .map(r => ({
+            title: r.title,
+            fileUrl: r.url,
+            fileType: 'application/octet-stream'
+          }))
+      };
+  
+      const response = await lessonService.updateLesson(id!, editingLesson.id, lessonData);
+      setLessons(lessons.map(l => l.id === editingLesson.id ? response.data.lesson : l));
+      setEditingLesson(null);
+      setShowLessonForm(false);
+      alert('✅ Lesson updated successfully!');
+    } catch (err: any) {
+      console.error('Failed to update lesson:', err);
+      alert(err.response?.data?.message || 'Failed to update lesson');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+  
+  const handleDeleteLesson = async (lessonId: string) => {
+    if (!window.confirm('Are you sure you want to delete this lesson?')) return;
+    try {
+      await lessonService.deleteLesson(id!, lessonId);
+      setLessons(lessons.filter(l => l.id !== lessonId));
+      if (currentLesson?.id === lessonId) {
+        setCurrentLesson(lessons[0] || null);
+      }
+      alert('✅ Lesson deleted successfully!');
+    } catch (err: any) {
+      console.error('Failed to delete lesson:', err);
+      alert(err.response?.data?.message || 'Failed to delete lesson');
+    }
+  };
+  
+  // Helper function to convert Lesson to LessonFormData
+  const getLessonFormData = (lesson: Lesson | null): Partial<LessonFormData> | undefined => {
+    if (!lesson) return undefined;
+    return {
+      title: lesson.title,
+      description: lesson.description,
+      duration: lesson.duration,
+      videoUrl: lesson.videoUrl || '',
+      videoProvider: lesson.videoProvider || 'youtube',
+      isPreview: lesson.isPreview,
+      resources: lesson.resources?.map(r => ({ title: r.title, url: r.fileUrl })) || []
+    };
   };
 
   const handleCreateReview = async (data: { rating: number; title: string; comment: string }) => {
@@ -197,23 +370,53 @@ const CourseDetailPage: React.FC = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
           <p className="text-gray-600 text-lg">Loading course details...</p>
+          <p className="text-sm text-gray-400 mt-2">Course ID: {id}</p>
         </div>
       </div>
     );
   }
 
   if (error || !course) {
+    const isAuthError = error === 'Please log in to view this course';
+    const isPermissionError = error === 'You do not have permission to view this course';
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <div className="text-6xl mb-4">😕</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Course Not Found</h2>
-          <p className="text-gray-600 mb-6">{error || 'The course you\'re looking for doesn\'t exist.'}</p>
+          <div className="text-6xl mb-4">
+            {isAuthError ? '🔐' : isPermissionError ? '🚫' : '😕'}
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            {isAuthError ? 'Authentication Required' : isPermissionError ? 'Access Denied' : 'Error'}
+          </h2>
+          <p className="text-gray-600 mb-4">{error || 'The course you\'re looking for doesn\'t exist.'}</p>
+          <p className="text-xs text-gray-400 mb-4">Course ID: {id}</p>
+          
+          {isAuthError && (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500 mb-4">
+                This course is not published yet. Please log in with the teacher account that created it.
+              </p>
+              <button
+                onClick={() => navigate('/login', { state: { from: `/courses/${id}` } })}
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+              >
+                Log In to View
+              </button>
+            </div>
+          )}
+          
+          {isPermissionError && (
+            <p className="text-sm text-gray-500 mb-4">
+              You don't have permission to view this course. It may belong to another teacher.
+            </p>
+          )}
+          
           <button
             onClick={() => navigate('/courses')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+            className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors font-medium mt-3"
           >
-            Browse Courses
+            Browse Other Courses
           </button>
         </div>
       </div>
@@ -269,7 +472,7 @@ const CourseDetailPage: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm text-white/80">Created by</p>
-                  <p className="font-semibold">{course.teacher?.name}</p>
+                  <p className="font-semibold">{course.teacher?.name || 'Unknown Instructor'}</p>
                 </div>
               </div>
             </div>
@@ -454,6 +657,15 @@ const CourseDetailPage: React.FC = () => {
                 currentLessonId={currentLesson?.id}
                 onLessonSelect={setCurrentLesson}
                 isTeacher={isTeacher || isAdmin}
+                onCreateClick={() => {
+                  setEditingLesson(null);
+                  setShowLessonForm(true);
+                }}
+                onEdit={(lesson) => {
+                  setEditingLesson(lesson);
+                  setShowLessonForm(true);
+                }}
+                onDelete={handleDeleteLesson}
               />
             </div>
             <div className="lg:col-span-2">
@@ -538,6 +750,39 @@ const CourseDetailPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Lesson Form Modal - Always accessible */}
+      {showLessonForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">
+                  {editingLesson ? 'Edit Lesson' : 'Create New Lesson'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowLessonForm(false);
+                    setEditingLesson(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              <LessonForm
+                initialData={getLessonFormData(editingLesson)}
+                onSubmit={editingLesson ? handleUpdateLesson : handleCreateLesson}
+                onCancel={() => {
+                  setShowLessonForm(false);
+                  setEditingLesson(null);
+                }}
+                loading={formLoading}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
