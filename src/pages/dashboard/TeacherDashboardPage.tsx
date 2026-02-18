@@ -89,16 +89,25 @@ const TeacherDashboardPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Teacher Dashboard</h1>
-        <button
-          onClick={() => navigate('/courses/create')}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-        >
-          + Create New Course
-        </button>
-      </div>
-
+   <div className="flex justify-between items-center mb-8">
+  <h1 className="text-3xl font-bold">Teacher Dashboard</h1>
+  <div className="flex space-x-4">
+    <button
+      onClick={() => navigate('/dashboard/teacher/analytics')}
+      className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center"
+    >
+      <span className="mr-2">📊</span>
+      Analytics
+    </button>
+    <button
+      onClick={() => navigate('/courses/create')}
+      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+    >
+      <span className="mr-2">+</span>
+      Create New Course
+    </button>
+  </div>
+</div>
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((stat, index) => (

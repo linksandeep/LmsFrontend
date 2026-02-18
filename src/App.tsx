@@ -1,18 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Layout from './components/layout/Layout';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import DashboardPage from './pages/dashboard/DashboardPage';
-import StudentDashboardPage from './pages/dashboard/StudentDashboardPage';
-import TeacherDashboardPage from './pages/dashboard/TeacherDashboardPage';
-import AdminDashboardPage from './pages/dashboard/AdminDashboardPage';
-import CoursesPage from './pages/course/CoursesPage';
-import CourseDetailPage from './pages/course/CourseDetailPage';
-import CreateCoursePage from './pages/course/CreateCoursePage';
-import TestBackendPage from './pages/TestBackendPage';
+import LoadingSpinner from './components/common/LoadingSpinner';
+
+// Lazy load pages for better performance
+const HomePage = lazy(() => import('./pages/HomePage'));
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
+const StudentDashboardPage = lazy(() => import('./pages/dashboard/StudentDashboardPage'));
+const TeacherDashboardPage = lazy(() => import('./pages/dashboard/TeacherDashboardPage'));
+const AdminDashboardPage = lazy(() => import('./pages/dashboard/AdminDashboardPage'));
+const TeacherAnalyticsPage = lazy(() => import('./pages/dashboard/TeacherAnalyticsPage'));
+const CoursesPage = lazy(() => import('./pages/course/CoursesPage'));
+const CourseDetailPage = lazy(() => import('./pages/course/CourseDetailPage'));
+const CreateCoursePage = lazy(() => import('./pages/course/CreateCoursePage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const WishlistPage = lazy(() => import('./pages/WishlistPage'));
+const CertificatesPage = lazy(() => import('./pages/CertificatesPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const TestBackendPage = lazy(() => import('./pages/TestBackendPage'));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-[60vh] flex items-center justify-center">
+    <LoadingSpinner size="lg" text="Loading page..." />
+  </div>
+);
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }: { children: React.ReactNode, allowedRoles?: string[] }) => {
@@ -23,7 +39,6 @@ const ProtectedRoute = ({ children, allowedRoles = [] }: { children: React.React
   if (!token) return <Navigate to="/login" replace />;
   
   if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
-    // Redirect to appropriate dashboard based on role
     if (user.role === 'student') return <Navigate to="/dashboard/student" replace />;
     if (user.role === 'teacher') return <Navigate to="/dashboard/teacher" replace />;
     if (user.role === 'admin') return <Navigate to="/dashboard/admin" replace />;
@@ -78,92 +93,170 @@ function App() {
   };
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <HomePage />
-          </Layout>
-        } />
-        
-        <Route path="/login" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <LoginPage onLogin={handleLogin} />
-          </Layout>
-        } />
-        
-        <Route path="/register" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <RegisterPage onRegister={handleRegister} />
-          </Layout>
-        } />
-        
-        <Route path="/forgot-password" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <ForgotPasswordPage />
-          </Layout>
-        } />
-        
-        <Route path="/courses" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <CoursesPage />
-          </Layout>
-        } />
-        
-        <Route path="/courses/:id" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <CourseDetailPage />
-          </Layout>
-        } />
-        
-        <Route path="/courses/create" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-              <CreateCoursePage />
-            </ProtectedRoute>
-          </Layout>
-        } />
-        
-        {/* Dashboard Routes */}
-        <Route path="/dashboard" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <ProtectedRoute>
-              <DashboardRouter />
-            </ProtectedRoute>
-          </Layout>
-        } />
-        
-        <Route path="/dashboard/student" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <ProtectedRoute allowedRoles={['student']}>
-              <StudentDashboardPage />
-            </ProtectedRoute>
-          </Layout>
-        } />
-        
-        <Route path="/dashboard/teacher" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <ProtectedRoute allowedRoles={['teacher']}>
-              <TeacherDashboardPage />
-            </ProtectedRoute>
-          </Layout>
-        } />
-        
-        <Route path="/dashboard/admin" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminDashboardPage />
-            </ProtectedRoute>
-          </Layout>
-        } />
-        
-        <Route path="/test-backend" element={
-          <Layout user={user} onLogout={handleLogout}>
-            <TestBackendPage />
-          </Layout>
-        } />
-      </Routes>
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <Suspense fallback={<PageLoader />}>
+                <HomePage />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/login" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <Suspense fallback={<PageLoader />}>
+                <LoginPage onLogin={handleLogin} />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/register" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <Suspense fallback={<PageLoader />}>
+                <RegisterPage onRegister={handleRegister} />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/forgot-password" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <Suspense fallback={<PageLoader />}>
+                <ForgotPasswordPage />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/courses" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <Suspense fallback={<PageLoader />}>
+                <CoursesPage />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/courses/:id" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <Suspense fallback={<PageLoader />}>
+                <CourseDetailPage />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/test-backend" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <Suspense fallback={<PageLoader />}>
+                <TestBackendPage />
+              </Suspense>
+            </Layout>
+          } />
+          
+          {/* Protected Routes */}
+          <Route path="/courses/create" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                <Suspense fallback={<PageLoader />}>
+                  <CreateCoursePage />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+          
+          <Route path="/profile" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <ProfilePage />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+          
+          <Route path="/wishlist" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <WishlistPage />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+          
+          <Route path="/certificates" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <CertificatesPage />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+          
+          <Route path="/settings" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <SettingsPage />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+          
+          {/* Dashboard Routes */}
+          <Route path="/dashboard" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <DashboardRouter />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+          
+          <Route path="/dashboard/student" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute allowedRoles={['student']}>
+                <Suspense fallback={<PageLoader />}>
+                  <StudentDashboardPage />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+          
+          <Route path="/dashboard/teacher" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute allowedRoles={['teacher']}>
+                <Suspense fallback={<PageLoader />}>
+                  <TeacherDashboardPage />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+          
+          <Route path="/dashboard/teacher/analytics" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute allowedRoles={['teacher']}>
+                <Suspense fallback={<PageLoader />}>
+                  <TeacherAnalyticsPage />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+          
+          <Route path="/dashboard/admin" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Suspense fallback={<PageLoader />}>
+                  <AdminDashboardPage />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 
