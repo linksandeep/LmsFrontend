@@ -32,11 +32,10 @@ const TeacherDashboardPage: React.FC = () => {
     try {
       setLoading(true);
       const response = await courseService.getMyCourses();
-      const coursesData = response.data.courses || [];
+      const coursesData = response.data?.courses || [];
       
       setCourses(coursesData);
       
-      // Calculate stats
       const published = coursesData.filter((c: Course) => c.isPublished).length;
       const totalStudents = coursesData.reduce((acc: number, c: Course) => acc + (c.enrolledStudents || 0), 0);
       const totalLessons = coursesData.reduce((acc: number, c: Course) => acc + (c.totalLessons || 0), 0);
@@ -58,9 +57,8 @@ const TeacherDashboardPage: React.FC = () => {
     try {
       setPublishing(courseId);
       await courseService.publishCourse(courseId);
-      // Reload data to show updated status
       await loadTeacherData();
-      alert('Course published successfully!');
+      alert('✅ Course published successfully!');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to publish course');
     } finally {
@@ -72,61 +70,90 @@ const TeacherDashboardPage: React.FC = () => {
     navigate(`/courses/${courseId}`);
   };
 
+  // Make stats cards clickable
   const statCards = [
-    { title: 'Total Courses', value: stats.totalCourses, icon: '📚', color: 'bg-blue-500' },
-    { title: 'Published', value: stats.publishedCourses, icon: '✅', color: 'bg-green-500' },
-    { title: 'Total Students', value: stats.totalStudents, icon: '👥', color: 'bg-purple-500' },
-    { title: 'Total Lessons', value: stats.totalLessons, icon: '📹', color: 'bg-orange-500' }
+    { 
+      title: 'Total Courses', 
+      value: stats.totalCourses, 
+      icon: '📚', 
+      color: 'bg-blue-500',
+      onClick: () => navigate('/courses') // Navigate to all courses
+    },
+    { 
+      title: 'Published', 
+      value: stats.publishedCourses, 
+      icon: '✅', 
+      color: 'bg-green-500',
+      onClick: () => navigate('/courses?filter=published') // Navigate to published courses
+    },
+    { 
+      title: 'Total Students', 
+      value: stats.totalStudents, 
+      icon: '👥', 
+      color: 'bg-purple-500',
+      onClick: () => navigate('/dashboard/teacher/analytics') // Navigate to analytics
+    },
+    { 
+      title: 'Total Lessons', 
+      value: stats.totalLessons, 
+      icon: '📹', 
+      color: 'bg-orange-500',
+      onClick: () => navigate('/courses') // Navigate to courses
+    }
   ];
 
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
       </div>
     );
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-   <div className="flex justify-between items-center mb-8">
-  <h1 className="text-3xl font-bold">Teacher Dashboard</h1>
-  <div className="flex space-x-4">
-    <button
-      onClick={() => navigate('/dashboard/teacher/analytics')}
-      className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center"
-    >
-      <span className="mr-2">📊</span>
-      Analytics
-    </button>
-    <button
-      onClick={() => navigate('/courses/create')}
-      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
-    >
-      <span className="mr-2">+</span>
-      Create New Course
-    </button>
-  </div>
-</div>
-      {/* Stats Grid */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Teacher Dashboard</h1>
+        <div className="flex space-x-4">
+          <button
+            onClick={() => navigate('/dashboard/teacher/analytics')}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center"
+          >
+            <span className="mr-2">📊</span>
+            Analytics
+          </button>
+          <button
+            onClick={() => navigate('/courses/create')}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+          >
+            <span className="mr-2">+</span>
+            Create New Course
+          </button>
+        </div>
+      </div>
+
+      {/* Clickable Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-3xl">{stat.icon}</span>
-                <span className={`${stat.color} text-white text-xs px-2 py-1 rounded`}>
-                  {stat.title}
-                </span>
-              </div>
-              <div className="text-2xl font-bold">{stat.value}</div>
+          <div
+            key={index}
+            onClick={stat.onClick}
+            className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer transform hover:scale-105 transition-all hover:shadow-xl"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-3xl">{stat.icon}</span>
+              <span className={`${stat.color} text-white text-xs px-2 py-1 rounded`}>
+                {stat.title}
+              </span>
             </div>
+            <div className="text-2xl font-bold">{stat.value}</div>
+            <p className="text-sm text-gray-500 mt-2">Click to view details →</p>
           </div>
         ))}
       </div>
 
       {/* My Courses */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-2xl shadow-lg p-6">
         <h2 className="text-xl font-bold mb-4">My Courses</h2>
         
         {courses.length === 0 ? (
@@ -151,7 +178,9 @@ const TeacherDashboardPage: React.FC = () => {
                     className="flex-1 cursor-pointer"
                     onClick={() => handleCourseClick(course.id || course._id || '')}
                   >
-                    <h3 className="font-semibold">{course.title}</h3>
+                    <h3 className="font-semibold text-lg hover:text-blue-600 transition-colors">
+                      {course.title}
+                    </h3>
                     <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                       <span>📊 {course.enrolledStudents || 0} students</span>
                       <span>📹 {course.totalLessons || 0} lessons</span>
