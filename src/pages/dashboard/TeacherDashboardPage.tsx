@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { courseService } from '../../services/course.service';
+import { FaUsers, FaBook, FaChartLine, FaPlus, FaLayerGroup } from 'react-icons/fa';
 
 interface Course {
   id: string;
@@ -70,35 +71,34 @@ const TeacherDashboardPage: React.FC = () => {
     navigate(`/courses/${courseId}`);
   };
 
-  // Make stats cards clickable
   const statCards = [
     { 
       title: 'Total Courses', 
       value: stats.totalCourses, 
       icon: '📚', 
       color: 'bg-blue-500',
-      onClick: () => navigate('/courses') // Navigate to all courses
+      onClick: () => navigate('/courses')
     },
     { 
       title: 'Published', 
       value: stats.publishedCourses, 
       icon: '✅', 
       color: 'bg-green-500',
-      onClick: () => navigate('/courses?filter=published') // Navigate to published courses
+      onClick: () => navigate('/courses?filter=published')
     },
     { 
       title: 'Total Students', 
       value: stats.totalStudents, 
       icon: '👥', 
       color: 'bg-purple-500',
-      onClick: () => navigate('/dashboard/teacher/analytics') // Navigate to analytics
+      onClick: () => navigate('/dashboard/teacher/analytics')
     },
     { 
       title: 'Total Lessons', 
       value: stats.totalLessons, 
       icon: '📹', 
       color: 'bg-orange-500',
-      onClick: () => navigate('/courses') // Navigate to courses
+      onClick: () => navigate('/courses')
     }
   ];
 
@@ -119,20 +119,27 @@ const TeacherDashboardPage: React.FC = () => {
             onClick={() => navigate('/dashboard/teacher/analytics')}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center"
           >
-            <span className="mr-2">📊</span>
+            <FaChartLine className="mr-2" />
             Analytics
+          </button>
+          <button
+            onClick={() => navigate('/teacher/batches')}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center"
+          >
+            <FaLayerGroup className="mr-2" />
+            Manage Batches
           </button>
           <button
             onClick={() => navigate('/courses/create')}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
           >
-            <span className="mr-2">+</span>
+            <FaPlus className="mr-2" />
             Create New Course
           </button>
         </div>
       </div>
 
-      {/* Clickable Stats Cards */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((stat, index) => (
           <div

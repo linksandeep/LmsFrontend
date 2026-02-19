@@ -3,7 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from './contexts/ThemeContext';
 import Layout from './components/layout/Layout';
 import LoadingSpinner from './components/common/LoadingSpinner';
-
+import TeacherBatchesPage from './pages/teacher/TeacherBatchesPage';
+import TeacherBatchDetailPage from './pages/teacher/TeacherBatchDetailPage';
+// Loading fallback
 // Lazy load pages
 const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
@@ -26,8 +28,10 @@ const TestBackendPage = lazy(() => import('./pages/TestBackendPage'));
 // Admin pages
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
 const AdminCoursesPage = lazy(() => import('./pages/admin/AdminCoursesPage'));
+const BatchManagementPage = lazy(() => import('./pages/admin/BatchManagementPage'));
+const BatchDetailPage = lazy(() => import('./pages/admin/BatchDetailPage'));
+// Add these imports with your other page imports
 
-// Loading fallback
 const PageLoader = () => (
   <div className="min-h-[60vh] flex items-center justify-center">
     <LoadingSpinner size="lg" text="Loading page..." />
@@ -163,6 +167,26 @@ function App() {
             </Layout>
           } />
           
+          <Route path="/admin/batches" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute allowedRoles={['admin', 'teacher']}>
+                <Suspense fallback={<PageLoader />}>
+                  <BatchManagementPage />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+
+          <Route path="/admin/batches/:id" element={
+            <Layout user={user} onLogout={handleLogout}>
+              <ProtectedRoute allowedRoles={['admin', 'teacher']}>
+                <Suspense fallback={<PageLoader />}>
+                  <BatchDetailPage />
+                </Suspense>
+              </ProtectedRoute>
+            </Layout>
+          } />
+          
           {/* Dashboard Routes */}
           <Route path="/dashboard" element={
             <Layout user={user} onLogout={handleLogout}>
@@ -187,7 +211,26 @@ function App() {
               </ProtectedRoute>
             </Layout>
           } />
-          
+        
+<Route path="/teacher/batches" element={
+  <Layout user={user} onLogout={handleLogout}>
+    <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+      <Suspense fallback={<PageLoader />}>
+        <TeacherBatchesPage />
+      </Suspense>
+    </ProtectedRoute>
+  </Layout>
+} />
+
+<Route path="/teacher/batches/:id" element={
+  <Layout user={user} onLogout={handleLogout}>
+    <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+      <Suspense fallback={<PageLoader />}>
+        <TeacherBatchDetailPage />
+      </Suspense>
+    </ProtectedRoute>
+  </Layout>
+} />
           <Route path="/dashboard/teacher/analytics" element={
             <Layout user={user} onLogout={handleLogout}>
               <ProtectedRoute allowedRoles={['teacher']}>
