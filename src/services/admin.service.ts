@@ -50,32 +50,32 @@ export interface TrendData {
 export const adminService = {
   // ==================== DASHBOARD STATS ====================
   
-  async getDashboardStats(): Promise<{ data: DashboardStats }> {
+  async getDashboardStats() {
     const response = await api.get('/admin/stats');
     return response.data;
   },
 
-  async getRevenueChart(period: 'monthly' | 'weekly' = 'monthly'): Promise<{ data: { chartData: ChartData[] } }> {
+  async getRevenueChart(period: 'monthly' | 'weekly' = 'monthly') {
     const response = await api.get(`/admin/revenue-chart?period=${period}`);
     return response.data;
   },
 
-  async getEnrollmentTrends(): Promise<{ data: { trends: TrendData[] } }> {
+  async getEnrollmentTrends() {
     const response = await api.get('/admin/enrollment-trends');
     return response.data;
   },
 
-  async getTopCourses(limit: number = 10): Promise<{ data: { courses: TopCourse[] } }> {
+  async getTopCourses(limit: number = 10) {
     const response = await api.get(`/admin/top-courses?limit=${limit}`);
     return response.data;
   },
 
-  async getRecentActivity(limit: number = 10): Promise<{ data: { activities: Activity[] } }> {
+  async getRecentActivity(limit: number = 10) {
     const response = await api.get(`/admin/activity?limit=${limit}`);
     return response.data;
   },
 
-  async getSystemHealth(): Promise<{ data: any }> {
+  async getSystemHealth() {
     const response = await api.get('/admin/system-health');
     return response.data;
   },
@@ -189,7 +189,7 @@ export const adminService = {
     return response.data;
   },
 
-  // ==================== SYSTEM SETTINGS ====================
+  // ==================== SETTINGS ====================
 
   async getSettings() {
     const response = await api.get('/admin/settings');

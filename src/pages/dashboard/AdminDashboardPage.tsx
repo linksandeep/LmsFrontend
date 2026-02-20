@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService, DashboardStats, Activity, TopCourse } from '../../services/admin.service';
 import { 
-  FaUsers, FaBook, FaGraduationCap,
-  FaMoneyBillWave, FaChartLine, FaBell,
-  FaUserPlus, FaStar, FaCog,
-  FaArrowUp, FaEllipsisV, FaSearch,
-  FaDownload, FaFilter, FaEye, FaEdit, FaTrash
+  FaUsers, FaBook, FaGraduationCap, FaMoneyBillWave, 
+  FaChartLine, FaBell, FaUserPlus, FaStar, FaCog,
+  FaArrowUp, FaEllipsisV, FaSearch, FaDownload, FaFilter,
+  FaEye, FaEdit, FaTrash, FaArrowRight
 } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
 
 const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +28,7 @@ const AdminDashboardPage: React.FC = () => {
   const [topCourses, setTopCourses] = useState<TopCourse[]>([]);
   const [revenueData, setRevenueData] = useState<any>(null);
   const [trendData, setTrendData] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchDashboardData();
@@ -46,12 +47,13 @@ const AdminDashboardPage: React.FC = () => {
       ]);
       
       setStats(statsRes.data);
-      setTopCourses(coursesRes.data.courses || []);
-      setRecentActivity(activityRes.data.activities || []);
+      setTopCourses(coursesRes.data?.courses || []);
+      setRecentActivity(activityRes.data?.activities || []);
       setRevenueData(revenueRes.data);
       setTrendData(trendsRes.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch dashboard data:', error);
+      toast.error(error.response?.data?.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -111,7 +113,7 @@ const AdminDashboardPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-6 py-3">
+        <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -147,7 +149,9 @@ const AdminDashboardPage: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               </div>
@@ -155,12 +159,12 @@ const AdminDashboardPage: React.FC = () => {
                 <FaBell className="text-xl" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
-              <button className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg">
+              <div className="flex items-center space-x-3 cursor-pointer hover:bg-gray-100 p-2 rounded-lg">
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
                   A
                 </div>
                 <span className="text-sm font-medium text-gray-700">Admin</span>
-              </button>
+              </div>
             </div>
           </div>
         </div>
@@ -176,7 +180,10 @@ const AdminDashboardPage: React.FC = () => {
               <p className="text-blue-100">Here's what's happening with your platform today.</p>
             </div>
             <div className="flex items-center space-x-3">
-              <button className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-medium flex items-center">
+              <button 
+                onClick={() => toast.success('Report exported successfully!')}
+                className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-medium flex items-center"
+              >
                 <FaDownload className="mr-2" />
                 Export Report
               </button>
@@ -188,16 +195,19 @@ const AdminDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - CLICKABLE */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow border border-gray-100">
+          <div 
+            onClick={() => navigate('/admin/users')}
+            className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all cursor-pointer transform hover:scale-105 border border-gray-100"
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <FaUsers className="text-blue-600 text-xl" />
               </div>
               <span className="flex items-center text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
                 <FaArrowUp className="mr-1 text-xs" />
-                +{stats.monthlyGrowth?.toFixed(1) || '0'}%
+                +{stats.monthlyGrowth.toFixed(1)}%
               </span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.totalUsers)}</p>
@@ -208,7 +218,10 @@ const AdminDashboardPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow border border-gray-100">
+          <div 
+            onClick={() => navigate('/admin/courses')}
+            className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all cursor-pointer transform hover:scale-105 border border-gray-100"
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <FaBook className="text-green-600 text-xl" />
@@ -220,10 +233,13 @@ const AdminDashboardPage: React.FC = () => {
             </div>
             <p className="text-2xl font-bold text-gray-900">{stats.totalCourses}</p>
             <p className="text-sm text-gray-600 mb-2">Active Courses</p>
-            <p className="text-xs text-gray-500">{stats.pendingReviews || 0} pending reviews</p>
+            <p className="text-xs text-gray-500">{stats.pendingReviews} pending reviews</p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow border border-gray-100">
+          <div 
+            onClick={() => navigate('/admin/enrollments')}
+            className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all cursor-pointer transform hover:scale-105 border border-gray-100"
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                 <FaGraduationCap className="text-purple-600 text-xl" />
@@ -238,7 +254,10 @@ const AdminDashboardPage: React.FC = () => {
             <p className="text-xs text-gray-500">{formatNumber(stats.activeSessions)} active sessions</p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow border border-gray-100">
+          <div 
+            onClick={() => navigate('/admin/reports')}
+            className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all cursor-pointer transform hover:scale-105 border border-gray-100"
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                 <FaMoneyBillWave className="text-yellow-600 text-xl" />
@@ -264,7 +283,12 @@ const AdminDashboardPage: React.FC = () => {
                   {dateRange === '7d' ? 'Weekly' : 'Monthly'} revenue
                 </p>
               </div>
-              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">View Report →</button>
+              <button 
+                onClick={() => navigate('/admin/reports/revenue')}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center"
+              >
+                View Report <FaArrowRight className="ml-1" />
+              </button>
             </div>
             <div className="h-64">
               {revenueData?.chartData && revenueData.chartData.length > 0 ? (
@@ -275,11 +299,12 @@ const AdminDashboardPage: React.FC = () => {
                     return (
                       <div key={index} className="flex flex-col items-center w-12">
                         <div 
-                          className="w-8 bg-blue-500 rounded-t-lg transition-all duration-500"
+                          className="w-8 bg-blue-500 rounded-t-lg transition-all duration-500 hover:bg-blue-600 cursor-pointer"
                           style={{ 
                             height: `${height}px`,
                             minHeight: '20px'
                           }}
+                          title={`${item.label}: ${formatCurrency(item.revenue)}`}
                         >
                           <div className="text-xs text-white text-center font-medium pt-1">
                             ${((item.revenue || 0) / 1000).toFixed(0)}k
@@ -304,7 +329,12 @@ const AdminDashboardPage: React.FC = () => {
                 <h3 className="text-lg font-semibold text-gray-900">Enrollment Trends</h3>
                 <p className="text-sm text-gray-500">Last 30 days</p>
               </div>
-              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">View Details →</button>
+              <button 
+                onClick={() => navigate('/admin/reports/enrollments')}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center"
+              >
+                View Details <FaArrowRight className="ml-1" />
+              </button>
             </div>
             <div className="h-64">
               {trendData?.trends && trendData.trends.length > 0 ? (
@@ -315,11 +345,12 @@ const AdminDashboardPage: React.FC = () => {
                     return (
                       <div key={index} className="flex flex-col items-center min-w-[40px]">
                         <div 
-                          className="w-6 bg-green-500 rounded-t-lg transition-all duration-500"
+                          className="w-6 bg-green-500 rounded-t-lg transition-all duration-500 hover:bg-green-600 cursor-pointer"
                           style={{ 
                             height: `${height}px`,
                             minHeight: '10px'
                           }}
+                          title={`${item.date}: ${item.count} enrollments`}
                         >
                           <div className="text-xs text-white text-center font-medium">
                             {item.count || 0}
@@ -347,9 +378,9 @@ const AdminDashboardPage: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900">Top Performing Courses</h3>
               <button 
                 onClick={() => navigate('/admin/courses')}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center"
               >
-                View All
+                View All <FaArrowRight className="ml-1" />
               </button>
             </div>
             <div className="overflow-x-auto">
@@ -393,17 +424,16 @@ const AdminDashboardPage: React.FC = () => {
                             <button 
                               onClick={() => navigate(`/admin/courses/${course.id}`)}
                               className="p-1 text-gray-400 hover:text-blue-600"
+                              title="View Details"
                             >
                               <FaEye />
                             </button>
                             <button 
                               onClick={() => navigate(`/admin/courses/edit/${course.id}`)}
                               className="p-1 text-gray-400 hover:text-green-600"
+                              title="Edit"
                             >
                               <FaEdit />
-                            </button>
-                            <button className="p-1 text-gray-400 hover:text-red-600">
-                              <FaTrash />
                             </button>
                           </div>
                         </td>
@@ -425,14 +455,17 @@ const AdminDashboardPage: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              <button 
+                onClick={() => navigate('/admin/activity')}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
                 <FaEllipsisV />
               </button>
             </div>
             <div className="space-y-4 max-h-[400px] overflow-y-auto">
               {recentActivity.length > 0 ? (
                 recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
                     <div className={`w-8 h-8 ${activity.color || 'bg-blue-100'} rounded-full flex items-center justify-center text-sm font-semibold`}>
                       {activity.avatar || activity.icon}
                     </div>
