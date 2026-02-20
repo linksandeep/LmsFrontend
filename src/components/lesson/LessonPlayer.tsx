@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import ReactPlayer from 'react-player';
+import React, { useState, useEffect } from 'react';
 import { Lesson } from '../../types/lesson';
 
 interface LessonPlayerProps {
@@ -11,17 +10,51 @@ const LessonPlayer: React.FC<LessonPlayerProps> = ({ lesson, onComplete }) => {
   const [played, setPlayed] = useState(0);
   const [completed, setCompleted] = useState(false);
 
-  // Use any type for the progress handler to avoid type conflicts
-  const handleProgress = (progress: any) => {
-    if (progress && typeof progress.played === 'number') {
-      setPlayed(progress.played);
-      // Mark as complete when 90% watched
-      if (progress.played > 0.9 && !completed) {
-        setCompleted(true);
-        onComplete?.();
-      }
-    }
-  };
+  useEffect(() => {
+    // Load YouTube IFrame API
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+    let player: any;
+    
+    // @ts-ignore
+    window.onYouTubeIframeAPIReady = () => {
+      // Extract video ID from URL
+      const videoId = lesson.videoUrl?.split('v=')[1]?.split('&')[0] || lesson.videoUrl;
+      
+      // @ts-ignore
+      player = new YT.Player('youtube-player', {
+        videoId: videoId,
+        playerVars: {
+          modestbranding: 1,
+          rel: 0,
+          controls: 1
+        },
+        events: {
+          onStateChange: (event: any) => {
+            if (event.data === 1) { // playing
+              // Track progress
+              const interval = setInterval(() => {
+                const duration = player.getDuration();
+                const currentTime = player.getCurrentTime();
+                const progress = currentTime / duration;
+                setPlayed(progress);
+                
+                if (progress > 0.9 && !completed) {
+                  setCompleted(true);
+                  onComplete?.();
+                }
+              }, 1000);
+              
+              return () => clearInterval(interval);
+            }
+          }
+        }
+      });
+    };
+  }, [lesson.videoUrl]);
 
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${minutes} min`;
@@ -32,31 +65,18 @@ const LessonPlayer: React.FC<LessonPlayerProps> = ({ lesson, onComplete }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="aspect-w-16 aspect-h-9 bg-black" style={{ paddingTop: '56.25%', position: 'relative' }}>
-        {lesson.videoUrl ? (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-            <ReactPlayer
-              url={lesson.videoUrl}
-              width="100%"
-              height="100%"
-              controls
-              onProgress={handleProgress}
-              config={{
-                youtube: {
-                  playerVars: {
-                    modestbranding: 1,
-                    rel: 0
-                  }
-                } as any
-              }}
-            />
-          </div>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-            <p className="text-white">No video available for this lesson</p>
-          </div>
-        )}
-      </div>
+    <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+      {lesson.videoUrl ? (
+        <div 
+          id="youtube-player" 
+          className="absolute top-0 left-0 w-full h-full"
+        ></div>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+          <p className="text-white">No video available for this lesson</p>
+        </div>
+      )}
+    </div>
       
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-2">{lesson.title}</h2>
