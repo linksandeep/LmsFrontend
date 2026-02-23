@@ -140,9 +140,8 @@ const TeacherBatchesPage: React.FC = () => {
       toast.error(error.response?.data?.message || 'Failed to delete batch');
     }
   };
-
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { bg: string; text: string; icon: JSX.Element; label: string }> = {
+    const statusConfig: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
       active: { bg: 'bg-green-100', text: 'text-green-800', icon: <FaPlayCircle className="mr-1" />, label: 'Active' },
       upcoming: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: <FaHourglassHalf className="mr-1" />, label: 'Upcoming' },
       completed: { bg: 'bg-blue-100', text: 'text-blue-800', icon: <FaCheckCircle className="mr-1" />, label: 'Completed' },

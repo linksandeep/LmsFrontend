@@ -11,44 +11,37 @@ const api = axios.create({
   },
 });
 
+// Request interceptor to add token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    console.log('📡 Request:', config.method?.toUpperCase(), config.url);
-    console.log('📡 Token exists:', !!token);
-    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('📡 Token added to request');
+      console.log('📡 Request:', config.method?.toUpperCase(), config.url);
     }
-    
     return config;
   },
-  (error) => {
-    console.error('📡 Request error:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
+// Response interceptor for error handling
 api.interceptors.response.use(
   (response) => {
     console.log('✅ Response:', response.status, response.config.url);
     return response;
   },
   (error) => {
-    console.error('❌ API Error:', {
-      status: error.response?.status,
-      url: error.config?.url,
-      message: error.response?.data?.message || error.message
-    });
+    console.error('❌ API Error:', error.response?.status, error.config?.url, error.message);
     
-    if (error.response?.status === 401) {
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/register') {
-        console.log('🔄 Unauthorized - redirecting to login');
-        // Don't remove token immediately, let the user see the error
-        // They can click login button on the error page
-      }
+    // Only redirect to login if NOT on login page and NOT on register page
+    const currentPath = window.location.pathname;
+    if (error.response?.status === 401 && 
+        currentPath !== '/login' && 
+        currentPath !== '/register' &&
+        !currentPath.includes('/forgot-password')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
