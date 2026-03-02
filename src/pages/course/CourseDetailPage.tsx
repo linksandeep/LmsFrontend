@@ -58,7 +58,7 @@ const CourseDetailPage: React.FC = () => {
   const [formLoading, setFormLoading] = useState(false);
   
   // UI state
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'reviews'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'reviews' | 'add-lesson'>('overview');
   const [authChecked, setAuthChecked] = useState(false);
 
   const userStr = localStorage.getItem('user');
@@ -74,8 +74,12 @@ const CourseDetailPage: React.FC = () => {
     setAuthChecked(true);
   }, [token, user, id]);
 
-  const isTeacher = user?.role === 'teacher' && isOwner;
+  // FIXED: Teacher can add lessons to ANY course they are teaching
+  const isTeacher = user?.role === 'teacher';
   const isAdmin = user?.role === 'admin';
+  // Teacher can add lessons if they are a teacher OR admin
+  const canAddLessons = isTeacher || isAdmin;
+  
   const canReview = isEnrolled && !reviews.some(r => r.userId === user?.id);
 
   // Load course data only once
@@ -270,6 +274,7 @@ const CourseDetailPage: React.FC = () => {
       const response = await lessonService.createLesson(id!, lessonData);
       setLessons([...lessons, response.data.lesson]);
       setShowLessonForm(false);
+      setActiveTab('content');
       alert('✅ Lesson created successfully!');
     } catch (err: any) {
       console.error('Failed to create lesson:', err);
@@ -462,8 +467,25 @@ const CourseDetailPage: React.FC = () => {
                   </svg>
                   <span className="text-sm">{course.enrolledStudents || 0} students</span>
                 </div>
+                
+                {/* Teacher badge - shows for all teachers */}
+                {isTeacher && (
+                  <div className="flex items-center gap-2 bg-yellow-400 text-gray-900 rounded-full px-4 py-1 font-bold">
+                    <span>👨‍🏫</span>
+                    <span>TEACHER</span>
+                  </div>
+                )}
+                
+                {/* Owner badge - only shows if they own it */}
+                {isOwner && (
+                  <div className="flex items-center gap-2 bg-purple-400 text-gray-900 rounded-full px-4 py-1 font-bold">
+                    <span>👑</span>
+                    <span>OWNER</span>
+                  </div>
+                )}
               </div>
               
+              {/* Teacher info */}
               <div className="flex items-center">
                 <div className="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center mr-3">
                   <span className="text-white font-bold text-lg">
@@ -523,20 +545,35 @@ const CourseDetailPage: React.FC = () => {
                     <span>Certificate of completion</span>
                   </div>
                 </div>
+
+                {/* ADD LESSON BUTTON - For teachers only */}
+                {canAddLessons && (
+                  <button
+                    onClick={() => setActiveTab('add-lesson')}
+                    className="w-full mt-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold flex items-center justify-center gap-2"
+                  >
+                    <span>➕</span>
+                    <span>Add New Lesson</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tabs Navigation */}
+      {/* Tabs Navigation - Using canAddLessons */}
       <div className="border-b bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8">
             {[
               { id: 'overview', label: 'Overview', icon: '📋' },
               { id: 'content', label: 'Course Content', icon: '📚', count: lessons.length },
-              { id: 'reviews', label: 'Reviews', icon: '⭐', count: reviewStats.totalReviews }
+              { id: 'reviews', label: 'Reviews', icon: '⭐', count: reviewStats.totalReviews },
+              // Add Lesson tab for teachers
+              ...(canAddLessons ? [
+                { id: 'add-lesson', label: 'Add Lesson', icon: '➕' }
+              ] : [])
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -644,6 +681,17 @@ const CourseDetailPage: React.FC = () => {
                     </dd>
                   </div>
                 </dl>
+
+                {/* Quick Add Lesson Button in Sidebar */}
+                {canAddLessons && (
+                  <button
+                    onClick={() => setActiveTab('add-lesson')}
+                    className="w-full mt-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
+                  >
+                    <span>➕</span>
+                    <span>Add Lesson</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -656,7 +704,8 @@ const CourseDetailPage: React.FC = () => {
                 lessons={lessons}
                 currentLessonId={currentLesson?.id}
                 onLessonSelect={setCurrentLesson}
-                isTeacher={isTeacher || isAdmin}
+                // Teachers can edit/delete lessons
+                isTeacher={canAddLessons}
                 onCreateClick={() => {
                   setEditingLesson(null);
                   setShowLessonForm(true);
@@ -667,6 +716,17 @@ const CourseDetailPage: React.FC = () => {
                 }}
                 onDelete={handleDeleteLesson}
               />
+              
+              {/* Add Lesson Button in Content Tab */}
+              {canAddLessons && (
+                <button
+                  onClick={() => setActiveTab('add-lesson')}
+                  className="w-full mt-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <span>➕</span>
+                  <span>Create New Lesson</span>
+                </button>
+              )}
             </div>
             <div className="lg:col-span-2">
               {currentLesson ? (
@@ -680,6 +740,16 @@ const CourseDetailPage: React.FC = () => {
                       ? 'This course has no lessons yet.' 
                       : 'Select a lesson from the list to start learning.'}
                   </p>
+                  
+                  {/* Quick add lesson button for teachers when no lessons exist */}
+                  {canAddLessons && lessons.length === 0 && (
+                    <button
+                      onClick={() => setActiveTab('add-lesson')}
+                      className="mt-6 px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-semibold text-lg"
+                    >
+                      ➕ Add Your First Lesson
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -749,9 +819,29 @@ const CourseDetailPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Add Lesson Tab Content */}
+        {activeTab === 'add-lesson' && (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-xl shadow-md p-8">
+              <div className="text-center mb-8">
+                <div className="text-6xl mb-4">➕</div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Create New Lesson</h2>
+                <p className="text-gray-600">Add a new lesson to your course</p>
+              </div>
+              
+              <LessonForm
+                initialData={getLessonFormData(editingLesson)}
+                onSubmit={handleCreateLesson}
+                onCancel={() => setActiveTab('content')}
+                loading={formLoading}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Lesson Form Modal - Always accessible */}
+      {/* Lesson Form Modal - Keep this for editing lessons */}
       {showLessonForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
